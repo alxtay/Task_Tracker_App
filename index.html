@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Streaks">
+<title>Streaks</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --text: #f0ece4;
+    --text-muted: #6b6660;
+    --accent: #c8f060;
+    --accent-dim: #8aab2a;
+    --danger: #f06060;
+    --streak-color: #c8f060;
+    --complete: #c8f060;
+    --incomplete: #2e2e2e;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding-bottom: 100px;
+    overscroll-behavior: none;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 56px 24px 24px;
+    position: relative;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .app-title {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+  .streak-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .streak-number {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .streak-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .streak-fire {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .date-label {
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px;
+    margin-bottom: 24px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0f0f0f;
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 0 24px; }
+  .view.active { display: block; }
+
+  /* ── TASK CARDS ── */
+  .tasks-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .task-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 20px;
+    transition: border-color 0.3s, background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-card.done {
+    border-color: var(--accent);
+    background: #1a1f0e;
+  }
+  .task-card.done::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(200,240,96,0.06) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .task-name {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text);
+    flex: 1;
+    margin-right: 12px;
+  }
+  .task-card.done .task-name {
+    color: var(--accent);
+  }
+  .task-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    font-size: 14px;
+  }
+  .task-card.done .task-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0f0f0f;
+  }
+
+  /* Slider */
+  .slider-track {
+    position: relative;
+    height: 48px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    border: 1.5px solid var(--border);
+  }
+  .slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    transition: width 0.1s;
+    opacity: 0.2;
+  }
+  .slider-thumb {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    width: 40px;
+    height: 38px;
+    background: var(--text);
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: left 0.05s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    z-index: 2;
+  }
+  .slider-label {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .task-card.done .slider-track {
+    background: #1a2a0a;
+    border-color: var(--accent-dim);
+    cursor: default;
+  }
+  .task-card.done .slider-thumb {
+    background: var(--accent);
+    color: #0f0f0f;
+  }
+  .task-card.done .slider-label { color: var(--accent-dim); }
+
+  /* Past day view */
+  .past-day-banner {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+  .past-day-banner span { flex: 1; }
+  .past-day-banner button {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    padding: 0;
+  }
+
+  .task-card.readonly { opacity: 0.75; }
+  .task-card.readonly .slider-track { pointer-events: none; }
+  .task-card.readonly.done { opacity: 1; }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    margin: 0 24px 24px;
+    background: var(--surface);
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 100px;
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* ── CALENDAR ── */
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cal-month {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 300;
+    font-style: italic;
+  }
+  .cal-nav {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+  .cal-nav:active { background: var(--surface2); }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .cal-day-label {
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-bottom: 6px;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    border: 1.5px solid transparent;
+  }
+  .cal-day.empty { pointer-events: none; }
+  .cal-day.future { color: var(--text-muted); pointer-events: none; opacity: 0.4; }
+  .cal-day.past { color: var(--text-muted); }
+  .cal-day.partial {
+    background: rgba(200,240,96,0.12);
+    color: var(--text);
+    border-color: rgba(200,240,96,0.25);
+  }
+  .cal-day.complete {
+    background: var(--accent);
+    color: #0f0f0f;
+    font-weight: 500;
+  }
+  .cal-day.today {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .cal-day.today.complete { border-color: var(--accent); }
+  .cal-day.selected {
+    box-shadow: 0 0 0 2px var(--text);
+  }
+  .cal-day:active:not(.future) { transform: scale(0.9); }
+
+  /* Calendar detail */
+  .cal-detail {
+    margin-top: 20px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+  }
+  .cal-detail-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cal-detail-header .goto-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .cal-detail-item {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cal-detail-item:last-child { border-bottom: none; }
+  .cal-detail-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .cal-detail-dot.done { background: var(--accent); }
+  .cal-detail-dot.undone { background: var(--border); }
+  .cal-detail-name {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 300;
+    font-style: italic;
+    flex: 1;
+  }
+  .cal-detail-status {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .cal-detail-status.done { color: var(--accent); }
+
+  /* ── MANAGE TASKS ── */
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .manage-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  .manage-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+  }
+  .manage-item-name {
+    flex: 1;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 300;
+    font-style: italic;
+  }
+  .manage-item input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 300;
+    font-style: italic;
+    outline: none;
+  }
+  .icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+  .icon-btn:hover { color: var(--danger); }
+  .icon-btn.edit:hover { color: var(--accent); }
+  .icon-btn.save { color: var(--accent); }
+
+  .add-task-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .add-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 300;
+    font-style: italic;
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-input:focus { border-color: var(--accent); }
+  .add-input::placeholder { color: var(--text-muted); }
+  .add-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #0f0f0f;
+    width: 52px;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+  }
+  .add-btn:active { opacity: 0.8; }
+
+  /* ── BOTTOM NAV ── */
+  nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    background: rgba(15,15,15,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 12px 24px 28px;
+    gap: 8px;
+    z-index: 100;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s;
+    color: var(--text-muted);
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-btn .nav-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .task-card { animation: slideIn 0.3s ease forwards; }
+
+  /* Complete flash */
+  @keyframes completeFlash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+  .task-card.flash { animation: completeFlash 0.35s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1 class="app-title">Streaks</h1>
+    <div class="streak-badge">
+      <div class="streak-fire">🔥</div>
+      <div class="streak-number" id="streakNum">0</div>
+      <div class="streak-label">day streak</div>
+    </div>
+  </div>
+  <div class="date-label" id="todayLabel">—</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('today')">Today</button>
+  <button class="tab" onclick="switchTab('calendar')">Calendar</button>
+  <button class="tab" onclick="switchTab('manage')">Tasks</button>
+</div>
+
+<!-- ── TODAY VIEW ── -->
+<div class="view active" id="view-today">
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+  <div class="tasks-list" id="tasksList"></div>
+</div>
+
+<!-- ── CALENDAR VIEW ── -->
+<div class="view" id="view-calendar">
+  <div class="calendar-header">
+    <button class="cal-nav" id="calPrev">‹</button>
+    <div class="cal-month" id="calMonthLabel"></div>
+    <button class="cal-nav" id="calNext">›</button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="cal-detail" id="calDetail" style="display:none"></div>
+</div>
+
+<!-- ── MANAGE VIEW ── -->
+<div class="view" id="view-manage">
+  <div class="section-title">Your Tasks</div>
+  <div class="manage-list" id="manageList"></div>
+  <div class="section-title">Add New</div>
+  <div class="add-task-form">
+    <input class="add-input" id="newTaskInput" placeholder="New task…" maxlength="40">
+    <button class="add-btn" onclick="addTask()">+</button>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let state = {
+  tasks: [],
+  completions: {} // { "YYYY-MM-DD": ["task1", "task2"] }
+};
+
+function saveState() {
+  localStorage.setItem('streaks_v2', JSON.stringify(state));
+}
+
+function loadState() {
+  const raw = localStorage.getItem('streaks_v2');
+  if (raw) {
+    state = JSON.parse(raw);
+  } else {
+    // Default tasks for first launch
+    state.tasks = ['Make bed', 'Exercise', 'Dishes'];
+    saveState();
+  }
+}
+
+// ─── DATE HELPERS ────────────────────────────────────────
+// dateKey returns "YYYY-MM-DD" for any date object
+function dateKey(d) {
+  return d.toISOString().split('T')[0];
+}
+
+function todayKey() {
+  return dateKey(new Date());
+}
+
+// isToday checks if a given key string is today
+function isToday(key) {
+  return key === todayKey();
+}
+
+// isFuture checks if the date key is after today
+function isFuture(key) {
+  return key > todayKey();
+}
+
+function formatFull(key) {
+  const [y, m, d] = key.split('-');
+  const date = new Date(+y, +m - 1, +d);
+  return date.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+// ─── STREAK CALCULATION ──────────────────────────────────
+// Walks backwards from today, checking if ALL tasks were completed.
+// Stops as soon as a day is found where not everything was done.
+function calcStreak() {
+  if (state.tasks.length === 0) return 0;
+  let streak = 0;
+  let d = new Date();
+
+  // If today isn't complete yet, still check — don't penalize an in-progress day
+  // We start from today and only break if a day has ZERO or PARTIAL completions
+  // (we skip today if it's still in progress and move to yesterday)
+  const todayCompleted = state.completions[todayKey()] || [];
+  const todayDone = state.tasks.every(t => todayCompleted.includes(t));
+
+  if (!todayDone) {
+    // Don't count today, start checking from yesterday
+    d.setDate(d.getDate() - 1);
+  }
+
+  // Walk backwards while each day is fully complete
+  while (true) {
+    const key = dateKey(d);
+    const completed = state.completions[key] || [];
+    const allDone = state.tasks.every(t => completed.includes(t));
+    if (!allDone) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+
+  // If today is fully done, add 1 for today
+  if (todayDone) streak++;
+
+  return streak;
+}
+
+// ─── TODAY VIEW ──────────────────────────────────────────
+// viewingDate is the date key currently displayed in today view
+let viewingDate = todayKey();
+
+function renderTodayView() {
+  const list = document.getElementById('tasksList');
+  const progressBar = document.getElementById('progressBar');
+  list.innerHTML = '';
+
+  const isReadOnly = !isToday(viewingDate);
+  const completed = state.completions[viewingDate] || [];
+
+  // Show a banner when viewing a past day
+  if (isReadOnly) {
+    const banner = document.createElement('div');
+    banner.className = 'past-day-banner';
+    banner.innerHTML = `<span>📅 Viewing ${formatFull(viewingDate)}</span><button onclick="goBackToToday()">← Back to today</button>`;
+    list.appendChild(banner);
+  }
+
+  if (state.tasks.length === 0) {
+    list.innerHTML += `<div class="empty-state"><div class="empty-icon">📋</div><p>No tasks yet.<br>Add some in the Tasks tab.</p></div>`;
+    progressBar.style.width = '0%';
+    return;
+  }
+
+  const doneCount = state.tasks.filter(t => completed.includes(t)).length;
+  const pct = state.tasks.length ? (doneCount / state.tasks.length) * 100 : 0;
+  progressBar.style.width = pct + '%';
+
+  // Render each task as a card with a slider
+  state.tasks.forEach((task, i) => {
+    const done = completed.includes(task);
+    const card = document.createElement('div');
+    card.className = 'task-card' + (done ? ' done' : '') + (isReadOnly ? ' readonly' : '');
+    card.style.animationDelay = (i * 0.05) + 's';
+
+    card.innerHTML = `
+      <div class="task-header">
+        <div class="task-name">${task}</div>
+        <div class="task-check">${done ? '✓' : ''}</div>
+      </div>
+      <div class="slider-track" id="slider-${i}" data-task="${task}" data-done="${done}">
+        <div class="slider-fill" id="fill-${i}" style="width:${done ? '100%' : '0%'}"></div>
+        <div class="slider-thumb" id="thumb-${i}" style="left:${done ? 'calc(100% - 44px)' : '4px'}">${done ? '✓' : '→'}</div>
+        <div class="slider-label">${done ? 'DONE' : 'SLIDE TO COMPLETE'}</div>
+      </div>
+    `;
+    list.appendChild(card);
+
+    // Attach slider logic (only for today)
+    if (!isReadOnly && !done) {
+      attachSlider(card, i, task);
+    }
+  });
+
+  document.getElementById('streakNum').textContent = calcStreak();
+  document.getElementById('todayLabel').textContent = isReadOnly
+    ? formatFull(viewingDate)
+    : 'Today — ' + formatFull(todayKey());
+}
+
+// Attaches touch/mouse drag events to a slider track.
+// The user must drag ~70% across to trigger completion.
+function attachSlider(card, idx, taskName) {
+  const track = document.getElementById(`slider-${idx}`);
+  const fill = document.getElementById(`fill-${idx}`);
+  const thumb = document.getElementById(`thumb-${idx}`);
+  let dragging = false;
+  let startX = 0;
+
+  function getTrackWidth() {
+    return track.getBoundingClientRect().width;
+  }
+
+  function getClientX(e) {
+    return e.touches ? e.touches[0].clientX : e.clientX;
+  }
+
+  function onStart(e) {
+    dragging = true;
+    startX = getClientX(e) - 4; // offset for thumb start
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const trackW = getTrackWidth();
+    const thumbW = 48;
+    const maxLeft = trackW - thumbW;
+    const rawX = getClientX(e) - track.getBoundingClientRect().left - thumbW / 2;
+    const clampedX = Math.max(4, Math.min(rawX, maxLeft));
+    const pct = (clampedX - 4) / (maxLeft - 4);
+
+    thumb.style.left = clampedX + 'px';
+    fill.style.width = (pct * 100) + '%';
+
+    // Trigger completion at 75%
+    if (pct >= 0.75) {
+      dragging = false;
+      completeTask(card, idx, taskName);
+    }
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    // Snap back if not completed
+    thumb.style.left = '4px';
+    fill.style.width = '0%';
+    thumb.style.transition = 'left 0.3s';
+    setTimeout(() => { thumb.style.transition = ''; }, 300);
+  }
+
+  track.addEventListener('touchstart', onStart, { passive: false });
+  track.addEventListener('touchmove', onMove, { passive: false });
+  track.addEventListener('touchend', onEnd);
+  track.addEventListener('mousedown', onStart);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onEnd);
+}
+
+function completeTask(card, idx, taskName) {
+  const key = viewingDate;
+  if (!state.completions[key]) state.completions[key] = [];
+  if (!state.completions[key].includes(taskName)) {
+    state.completions[key].push(taskName);
+    saveState();
+  }
+  card.classList.add('done', 'flash');
+  setTimeout(() => renderTodayView(), 350);
+}
+
+function goBackToToday() {
+  viewingDate = todayKey();
+  renderTodayView();
+}
+
+// ─── CALENDAR VIEW ───────────────────────────────────────
+let calYear, calMonth;
+
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth(); // 0-indexed
+  renderCalendar();
+}
+
+function renderCalendar(selectedKey) {
+  const grid = document.getElementById('calGrid');
+  const label = document.getElementById('calMonthLabel');
+  grid.innerHTML = '';
+
+  const now = new Date();
+  const today = todayKey();
+
+  label.textContent = new Date(calYear, calMonth, 1)
+    .toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+
+  // Day labels
+  ['S','M','T','W','T','F','S'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0 = Sunday
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+  // Empty cells before month start
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const el = document.createElement('div');
+    el.textContent = d;
+
+    const completed = state.completions[key] || [];
+    const totalTasks = state.tasks.length;
+    const doneCount = state.tasks.filter(t => completed.includes(t)).length;
+
+    // Classify the day for styling
+    let classes = ['cal-day'];
+    if (key === today) classes.push('today');
+    else if (isFuture(key)) classes.push('future');
+    else if (totalTasks === 0) classes.push('past');
+    else if (doneCount === totalTasks) classes.push('complete');
+    else if (doneCount > 0) classes.push('partial');
+    else classes.push('past');
+
+    if (key === selectedKey) classes.push('selected');
+
+    el.className = classes.join(' ');
+
+    if (!isFuture(key)) {
+      el.addEventListener('click', () => {
+        renderCalendar(key);
+        renderCalDetail(key);
+      });
+    }
+
+    grid.appendChild(el);
+  }
+}
+
+// Renders the day detail panel below the calendar
+function renderCalDetail(key) {
+  const detail = document.getElementById('calDetail');
+  const completed = state.completions[key] || [];
+
+  if (state.tasks.length === 0) {
+    detail.style.display = 'none';
+    return;
+  }
+
+  detail.style.display = 'block';
+
+  const isThisToday = isToday(key);
+  const gotoBtn = isThisToday
+    ? ''
+    : `<button class="goto-btn" onclick="viewDayInToday('${key}')">View day →</button>`;
+
+  let itemsHtml = state.tasks.map(task => {
+    const done = completed.includes(task);
+    return `
+      <div class="cal-detail-item">
+        <div class="cal-detail-dot ${done ? 'done' : 'undone'}"></div>
+        <div class="cal-detail-name">${task}</div>
+        <div class="cal-detail-status ${done ? 'done' : ''}">${done ? 'done' : 'missed'}</div>
+      </div>`;
+  }).join('');
+
+  detail.innerHTML = `
+    <div class="cal-detail-header">
+      <span>${formatFull(key)}</span>
+      ${gotoBtn}
+    </div>
+    ${itemsHtml}
+  `;
+}
+
+// Switches to the today tab and shows a past day's state (read-only)
+function viewDayInToday(key) {
+  viewingDate = key;
+  switchTab('today');
+  renderTodayView();
+}
+
+document.getElementById('calPrev').addEventListener('click', () => {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+  document.getElementById('calDetail').style.display = 'none';
+});
+document.getElementById('calNext').addEventListener('click', () => {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+  document.getElementById('calDetail').style.display = 'none';
+});
+
+// ─── MANAGE TASKS VIEW ───────────────────────────────────
+function renderManageView() {
+  const list = document.getElementById('manageList');
+  list.innerHTML = '';
+
+  if (state.tasks.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No tasks yet. Add one below.</p></div>`;
+    return;
+  }
+
+  state.tasks.forEach((task, i) => {
+    const item = document.createElement('div');
+    item.className = 'manage-item';
+    item.innerHTML = `
+      <div class="manage-item-name">${task}</div>
+      <button class="icon-btn edit" onclick="editTask(${i})" title="Edit">✎</button>
+      <button class="icon-btn" onclick="deleteTask(${i})" title="Delete">✕</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function editTask(idx) {
+  const list = document.getElementById('manageList');
+  const items = list.querySelectorAll('.manage-item');
+  const item = items[idx];
+  const name = state.tasks[idx];
+
+  item.innerHTML = `
+    <input value="${name}" maxlength="40" onkeydown="if(event.key==='Enter')saveTask(${idx}, this.value)">
+    <button class="icon-btn save" onclick="saveTask(${idx}, this.previousElementSibling.value)">✓</button>
+    <button class="icon-btn" onclick="renderManageView()">✕</button>
+  `;
+  item.querySelector('input').focus();
+}
+
+function saveTask(idx, newName) {
+  const trimmed = newName.trim();
+  if (!trimmed) return;
+  const old = state.tasks[idx];
+  state.tasks[idx] = trimmed;
+
+  // Update completions to use new name
+  Object.keys(state.completions).forEach(key => {
+    const i = state.completions[key].indexOf(old);
+    if (i !== -1) state.completions[key][i] = trimmed;
+  });
+
+  saveState();
+  renderManageView();
+  renderTodayView();
+}
+
+function deleteTask(idx) {
+  const taskName = state.tasks[idx];
+  state.tasks.splice(idx, 1);
+
+  // Remove task from all completion records
+  Object.keys(state.completions).forEach(key => {
+    state.completions[key] = state.completions[key].filter(t => t !== taskName);
+  });
+
+  saveState();
+  renderManageView();
+  renderTodayView();
+}
+
+function addTask() {
+  const input = document.getElementById('newTaskInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.tasks.includes(name)) { input.select(); return; }
+  state.tasks.push(name);
+  saveState();
+  input.value = '';
+  renderManageView();
+  renderTodayView();
+}
+
+document.getElementById('newTaskInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+// ─── TAB SWITCHING ───────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['today','calendar','manage'][i] === name);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+
+  if (name === 'today') renderTodayView();
+  if (name === 'calendar') { initCalendar(); }
+  if (name === 'manage') renderManageView();
+}
+
+// ─── INIT ────────────────────────────────────────────────
+loadState();
+document.getElementById('todayLabel').textContent = 'Today — ' + formatFull(todayKey());
+renderTodayView();
+</script>
+</body>
+</html>
