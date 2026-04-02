@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Streaks">
+<title>Streaks</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+/* ── THEMES ── */
+[data-theme="dark"] {
+  --bg:#0f0f0f; --surface:#1a1a1a; --surface2:#242424;
+  --border:#2e2e2e; --text:#f0ece4; --text-muted:#6b6660;
+  --accent:#c8f060; --accent-dim:#8aab2a; --accent-fg:#0f0f0f;
+  --danger:#f06060; --done-bg:#1a1f0e; --done-slider:#1a2a0a;
+}
+[data-theme="light"] {
+  --bg:#f5f2ed; --surface:#ffffff; --surface2:#ede9e3;
+  --border:#d8d2c8; --text:#2a2520; --text-muted:#9a9088;
+  --accent:#2a7a4b; --accent-dim:#1d5535; --accent-fg:#ffffff;
+  --danger:#c0392b; --done-bg:#eaf4ee; --done-slider:#d4ecdb;
+}
+[data-theme="arctic"] {
+  --bg:#0d1b2a; --surface:#162636; --surface2:#1e3248;
+  --border:#2a4460; --text:#d6eaf8; --text-muted:#5a89aa;
+  --accent:#56c8e8; --accent-dim:#2a8aaa; --accent-fg:#0d1b2a;
+  --danger:#e87878; --done-bg:#0e2233; --done-slider:#102840;
+}
+[data-theme="forest"] {
+  --bg:#111a0f; --surface:#1a2616; --surface2:#223020;
+  --border:#2e4228; --text:#dde8d0; --text-muted:#6a8860;
+  --accent:#90c060; --accent-dim:#5a8838; --accent-fg:#111a0f;
+  --danger:#e07858; --done-bg:#182410; --done-slider:#1e2e14;
+}
+[data-theme="dusk"] {
+  --bg:#1a1020; --surface:#241830; --surface2:#2e2040;
+  --border:#3e2e58; --text:#ecddf8; --text-muted:#806898;
+  --accent:#c890f0; --accent-dim:#8850c0; --accent-fg:#1a1020;
+  --danger:#f07878; --done-bg:#1e1428; --done-slider:#221830;
+}
+
+/* ── RESET & BASE ── */
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+body {
+  background:var(--bg); color:var(--text); font-family:'DM Mono',monospace;
+  min-height:100vh; max-width:480px; margin:0 auto; padding-bottom:100px;
+  overscroll-behavior:none; transition:background 0.3s,color 0.3s;
+}
+
+/* ── HEADER ── */
+header { padding:52px 24px 20px; }
+.header-top { display:flex; justify-content:space-between; align-items:flex-start; }
+.app-title { font-family:'Fraunces',serif; font-size:42px; font-weight:700; line-height:1; letter-spacing:-1px; color:var(--text); }
+.streak-badge { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.streak-number { font-family:'Fraunces',serif; font-size:48px; font-weight:700; color:var(--accent); line-height:1; }
+.streak-label { font-size:10px; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; }
+.streak-fire { font-size:28px; line-height:1; }
+.date-label { margin-top:10px; font-size:11px; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase; }
+
+/* ── TABS ── */
+.tabs { display:flex; gap:8px; padding:0 24px; margin-bottom:24px; }
+.tab {
+  flex:1; padding:10px 6px; border-radius:10px; border:1.5px solid var(--border);
+  background:transparent; color:var(--text-muted);
+  font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px;
+  text-transform:uppercase; cursor:pointer; transition:all 0.2s;
+}
+.tab.active { background:var(--accent); border-color:var(--accent); color:var(--accent-fg); }
+
+/* ── VIEWS ── */
+.view { display:none; padding:0 24px; }
+.view.active { display:block; }
+
+/* ── PROGRESS BAR ── */
+.progress-bar-wrap { margin:0 24px 24px; background:var(--surface); border-radius:100px; height:6px; overflow:hidden; border:1px solid var(--border); }
+.progress-bar-fill { height:100%; background:var(--accent); border-radius:100px; transition:width 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* ── TASK CARDS ── */
+.tasks-list { display:flex; flex-direction:column; gap:12px; }
+.task-card {
+  background:var(--surface); border-radius:16px; border:1.5px solid var(--border);
+  padding:20px; transition:border-color 0.3s,background 0.3s;
+  position:relative; overflow:hidden; animation:slideIn 0.3s ease forwards;
+}
+.task-card.done { border-color:var(--accent); background:var(--done-bg); }
+.task-card.done::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,transparent 60%); pointer-events:none; }
+.task-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.task-name { font-family:'Fraunces',serif; font-size:20px; font-weight:300; font-style:italic; color:var(--text); flex:1; margin-right:12px; }
+.task-card.done .task-name { color:var(--accent); }
+.task-check { width:28px; height:28px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.3s; font-size:14px; }
+.task-card.done .task-check { background:var(--accent); border-color:var(--accent); color:var(--accent-fg); }
+
+/* Slider */
+.slider-track { position:relative; height:48px; background:var(--surface2); border-radius:100px; overflow:hidden; cursor:pointer; user-select:none; -webkit-user-select:none; border:1.5px solid var(--border); }
+.slider-fill { position:absolute; left:0; top:0; height:100%; background:var(--accent); border-radius:100px; opacity:0.25; }
+.slider-thumb { position:absolute; left:4px; top:4px; width:40px; height:38px; background:var(--text); border-radius:100px; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 2px 8px rgba(0,0,0,0.3); z-index:2; }
+.slider-label { position:absolute; right:18px; top:50%; transform:translateY(-50%); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); pointer-events:none; }
+.task-card.done .slider-track { background:var(--done-slider); border-color:var(--accent-dim); cursor:default; }
+.task-card.done .slider-thumb { background:var(--accent); color:var(--accent-fg); }
+.task-card.done .slider-label { color:var(--accent-dim); }
+
+.undo-btn { margin-top:12px; width:100%; background:none; border:1px solid var(--border); border-radius:10px; color:var(--text-muted); font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; padding:8px; cursor:pointer; transition:border-color 0.2s,color 0.2s; }
+.undo-btn:active { border-color:var(--danger); color:var(--danger); }
+
+/* Past-day banner */
+.past-day-banner { background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; padding:12px 18px; margin-bottom:20px; display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted); letter-spacing:1px; }
+.past-day-banner span { flex:1; }
+.past-day-banner button { background:none; border:none; color:var(--accent); font-family:'DM Mono',monospace; font-size:11px; cursor:pointer; padding:0; }
+
+/* Section dividers in today view */
+.section-divider { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin:20px 0 10px; }
+
+/* Event pills in today view */
+.event-pill { display:flex; align-items:center; gap:12px; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:10px; }
+.event-pill-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.event-pill-name { font-family:'Fraunces',serif; font-size:17px; font-weight:300; font-style:italic; flex:1; }
+.event-pill-note { font-size:10px; color:var(--text-muted); letter-spacing:1px; }
+
+/* ── CALENDAR ── */
+.calendar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.cal-month { font-family:'Fraunces',serif; font-size:24px; font-weight:300; font-style:italic; }
+.cal-nav { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; color:var(--text); width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; transition:background 0.2s; }
+.cal-nav:active { background:var(--surface2); }
+
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.cal-day-label { text-align:center; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); padding-bottom:6px; }
+.cal-day {
+  aspect-ratio:1; border-radius:50%; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-size:12px; cursor:pointer;
+  transition:all 0.2s; border:1.5px solid transparent; position:relative; gap:2px;
+}
+.cal-day.empty { pointer-events:none; }
+/* future days are now clickable — only empty grid-fillers are blocked */
+.cal-day.future { color:var(--text-muted); opacity:0.6; }
+.cal-day.past { color:var(--text-muted); }
+.cal-day.partial { background:rgba(128,128,128,0.15); color:var(--text); border-color:rgba(128,128,128,0.3); }
+.cal-day.complete { background:var(--accent); color:var(--accent-fg); font-weight:500; }
+.cal-day.today { border-color:var(--accent); color:var(--text); }
+.cal-day.today.complete { color:var(--accent-fg); }
+.cal-day.selected { box-shadow:0 0 0 2px var(--text); }
+.cal-day:active { transform:scale(0.88); }
+
+.event-dots { display:flex; gap:2px; align-items:center; }
+.event-dot { width:4px; height:4px; border-radius:50%; }
+
+/* Calendar detail panel */
+.cal-detail { margin-top:20px; background:var(--surface); border-radius:16px; border:1.5px solid var(--border); overflow:hidden; }
+.cal-detail-header { padding:16px 20px; border-bottom:1px solid var(--border); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center; }
+.goto-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--accent); font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; padding:4px 10px; cursor:pointer; }
+.cal-detail-item { padding:14px 20px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); }
+.cal-detail-item:last-child { border-bottom:none; }
+.cal-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.cal-dot.done { background:var(--accent); }
+.cal-dot.undone { background:var(--border); }
+.cal-detail-name { font-family:'Fraunces',serif; font-size:17px; font-weight:300; font-style:italic; flex:1; }
+.cal-detail-status { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); }
+.cal-detail-status.done { color:var(--accent); }
+.add-event-btn { width:100%; padding:14px 20px; background:none; border:none; border-top:1px solid var(--border); color:var(--accent); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; text-align:left; }
+
+/* ── ADD EVENT MODAL ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:flex-end; justify-content:center; z-index:200; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity 0.25s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-sheet { background:var(--surface); border-radius:24px 24px 0 0; border:1.5px solid var(--border); border-bottom:none; padding:28px 24px 48px; width:100%; max-width:480px; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+.modal-overlay.open .modal-sheet { transform:translateY(0); }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 24px; }
+.modal-title { font-family:'Fraunces',serif; font-size:24px; font-weight:300; font-style:italic; margin-bottom:20px; }
+.modal-field { margin-bottom:16px; }
+.modal-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+.modal-input { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Fraunces',serif; font-size:17px; font-weight:300; font-style:italic; padding:12px 14px; outline:none; transition:border-color 0.2s; }
+.modal-input:focus { border-color:var(--accent); }
+.modal-input::placeholder { color:var(--text-muted); }
+.color-swatches { display:flex; gap:10px; flex-wrap:wrap; }
+.swatch { width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid transparent; transition:transform 0.15s,border-color 0.15s; }
+.swatch.selected { border-color:var(--text); transform:scale(1.15); }
+.modal-actions { display:flex; gap:10px; margin-top:24px; }
+.btn-primary { flex:1; padding:14px; background:var(--accent); border:none; border-radius:10px; color:var(--accent-fg); font-family:'DM Mono',monospace; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; transition:opacity 0.2s; }
+.btn-primary:active { opacity:0.8; }
+.btn-secondary { padding:14px 20px; background:none; border:1.5px solid var(--border); border-radius:10px; color:var(--text-muted); font-family:'DM Mono',monospace; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+
+/* ── MANAGE / TASKS TAB ── */
+.section-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); margin-bottom:14px; }
+.manage-list { display:flex; flex-direction:column; gap:10px; margin-bottom:28px; }
+.manage-item { display:flex; align-items:center; gap:12px; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:14px 16px; }
+.manage-item-name { flex:1; font-family:'Fraunces',serif; font-size:18px; font-weight:300; font-style:italic; }
+.manage-item input { flex:1; background:none; border:none; color:var(--text); font-family:'Fraunces',serif; font-size:18px; font-weight:300; font-style:italic; outline:none; }
+.icon-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:4px; border-radius:6px; transition:color 0.2s; line-height:1; }
+.icon-btn:hover { color:var(--danger); }
+.icon-btn.edit:hover { color:var(--accent); }
+.icon-btn.save { color:var(--accent); }
+.add-task-form { display:flex; gap:10px; margin-bottom:10px; }
+.add-input { flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Fraunces',serif; font-size:18px; font-weight:300; font-style:italic; padding:14px 16px; outline:none; transition:border-color 0.2s; }
+.add-input:focus { border-color:var(--accent); }
+.add-input::placeholder { color:var(--text-muted); }
+.add-btn { background:var(--accent); border:none; border-radius:10px; color:var(--accent-fg); width:52px; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:opacity 0.2s; }
+.add-btn:active { opacity:0.8; }
+
+.reset-btn {
+  width:100%; padding:14px; background:none;
+  border:1.5px solid var(--danger); border-radius:10px; color:var(--danger);
+  font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1.5px;
+  text-transform:uppercase; cursor:pointer; transition:background 0.2s,color 0.2s;
+  margin-bottom:40px;
+}
+.reset-btn:active { background:var(--danger); color:var(--bg); }
+
+/* Theme picker */
+.theme-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:28px; }
+.theme-swatch { aspect-ratio:1; border-radius:12px; cursor:pointer; border:2.5px solid transparent; transition:transform 0.15s,border-color 0.15s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; overflow:hidden; }
+.theme-swatch.active { border-color:var(--text); transform:scale(1.06); }
+.theme-swatch-dot { width:18px; height:18px; border-radius:50%; }
+.theme-swatch-label { font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+.empty-state .empty-icon { font-size:48px; margin-bottom:16px; }
+.empty-state p { font-size:13px; line-height:1.6; }
+
+/* ── TO DO TAB ── */
+.todo-add-form { display:flex; gap:10px; margin-bottom:20px; }
+
+/* Active to-do items — compact single-row design */
+.todo-item {
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:10px; padding:12px 14px; margin-bottom:8px;
+  animation:slideIn 0.2s ease forwards;
+}
+.todo-check-btn {
+  width:24px; height:24px; border-radius:50%; border:2px solid var(--border);
+  background:none; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.2s; font-size:12px; color:transparent;
+}
+.todo-check-btn:hover { border-color:var(--accent); color:var(--accent); }
+.todo-item-name {
+  font-family:'Fraunces',serif; font-size:16px; font-weight:300; font-style:italic;
+  flex:1; color:var(--text);
+}
+.todo-delete-btn {
+  background:none; border:none; color:var(--text-muted); cursor:pointer;
+  font-size:16px; padding:2px 4px; line-height:1; transition:color 0.2s;
+}
+.todo-delete-btn:hover { color:var(--danger); }
+
+/* History section */
+.todo-history-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin:24px 0 12px;
+}
+.todo-clear-btn {
+  background:none; border:1px solid var(--border); border-radius:6px;
+  color:var(--text-muted); font-family:'DM Mono',monospace;
+  font-size:10px; letter-spacing:1px; text-transform:uppercase;
+  padding:5px 10px; cursor:pointer; transition:border-color 0.2s,color 0.2s;
+}
+.todo-clear-btn:active { border-color:var(--danger); color:var(--danger); }
+
+/* Completed history row */
+.todo-history-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  opacity:0.7;
+}
+.todo-history-item:first-child { border-top:1px solid var(--border); }
+.todo-history-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.todo-history-name {
+  font-family:'Fraunces',serif; font-size:15px; font-weight:300; font-style:italic;
+  flex:1; color:var(--text); text-decoration:line-through; text-decoration-color:var(--text-muted);
+}
+.todo-history-date { font-size:10px; color:var(--text-muted); letter-spacing:1px; white-space:nowrap; }
+
+/* ── ANIMATIONS ── */
+@keyframes slideIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes completeFlash { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
+.task-card.flash { animation:completeFlash 0.35s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1 class="app-title">Streaks</h1>
+    <div class="streak-badge">
+      <div class="streak-fire">🔥</div>
+      <div class="streak-number" id="streakNum">0</div>
+      <div class="streak-label">day streak</div>
+    </div>
+  </div>
+  <div class="date-label" id="todayLabel">—</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('calendar')">Calendar</button>
+  <button class="tab" onclick="switchTab('today')">Today</button>
+  <button class="tab" onclick="switchTab('todo')">To Do</button>
+  <button class="tab" onclick="switchTab('manage')">Daily Tasks</button>
+</div>
+
+<!-- ── CALENDAR VIEW (home) ── -->
+<div class="view active" id="view-calendar">
+  <div class="calendar-header">
+    <button class="cal-nav" id="calPrev">‹</button>
+    <div class="cal-month" id="calMonthLabel"></div>
+    <button class="cal-nav" id="calNext">›</button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="cal-detail" id="calDetail" style="display:none"></div>
+</div>
+
+<!-- ── TODAY VIEW ── -->
+<div class="view" id="view-today">
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+  <div class="tasks-list" id="tasksList"></div>
+</div>
+
+<!-- ── TO DO VIEW ── -->
+<div class="view" id="view-todo">
+  <div class="todo-add-form">
+    <input class="add-input" id="newTodoInput" placeholder="Add a to-do…" maxlength="60">
+    <button class="add-btn" onclick="addTodo()">+</button>
+  </div>
+  <div id="todoActiveList"></div>
+  <div id="todoHistorySection" style="display:none">
+    <div class="todo-history-header">
+      <div class="section-title" style="margin:0">Completed</div>
+      <button class="todo-clear-btn" onclick="clearTodoHistory()">Clear history</button>
+    </div>
+    <div id="todoHistoryList"></div>
+  </div>
+</div>
+
+<!-- ── MANAGE / TASKS VIEW ── -->
+<div class="view" id="view-manage">
+  <div class="section-title">Daily Tasks</div>
+  <div class="manage-list" id="manageList"></div>
+  <div class="section-title">Add Task</div>
+  <div class="add-task-form">
+    <input class="add-input" id="newTaskInput" placeholder="New task…" maxlength="40">
+    <button class="add-btn" onclick="addTask()">+</button>
+  </div>
+  <div class="section-title" style="margin-top:28px">Theme</div>
+  <div class="theme-grid" id="themeGrid"></div>
+  <div class="section-title" style="margin-top:28px">Data</div>
+  <button class="reset-btn" onclick="resetAllData()">⚠ Reset all data</button>
+</div>
+
+<!-- ── ADD EVENT MODAL (bottom sheet) ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">Add Event</div>
+    <div class="modal-field">
+      <div class="modal-label">Event name</div>
+      <input class="modal-input" id="eventName" placeholder="e.g. Trip to Montreal" maxlength="50">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Note (optional)</div>
+      <input class="modal-input" id="eventNote" placeholder="e.g. Fly out 7am" maxlength="60">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Colour</div>
+      <div class="color-swatches" id="colorSwatches"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────
+const EVENT_COLORS = [
+  '#e05c5c','#e09050','#e0d050','#60c060',
+  '#50b8d0','#6080e0','#a060d8','#e060a8','#a0a0a0','#d08060',
+];
+
+const THEMES = [
+  { id:'dark',   label:'Dark',   bg:'#0f0f0f', dot:'#c8f060' },
+  { id:'light',  label:'Light',  bg:'#f5f2ed', dot:'#2a7a4b' },
+  { id:'arctic', label:'Arctic', bg:'#0d1b2a', dot:'#56c8e8' },
+  { id:'forest', label:'Forest', bg:'#111a0f', dot:'#90c060' },
+  { id:'dusk',   label:'Dusk',   bg:'#1a1020', dot:'#c890f0' },
+];
+
+// ─── STATE ───────────────────────────────────────────────
+//
+// taskHistory is the core of the new task system. Instead of a flat
+// array of task name strings, we store objects with:
+//   { id, name, addedOn, retiredOn }
+//
+// addedOn  : "YYYY-MM-DD" — the first day this task applies to
+// retiredOn: "YYYY-MM-DD" | null — when renamed/deleted, set to the day
+//            BEFORE the change. Tasks with retiredOn < a given date are
+//            invisible on that date.
+//
+// completions still maps "YYYY-MM-DD" → [taskName, ...] by name string.
+// This means if "go for a run" was completed on 2025-03-01 and then
+// renamed to "workout" on 2025-03-05, the 2025-03-01 entry still holds
+// "go for a run", which correctly matches the retired task entry.
+//
+// The active task list at any given date is:
+//   taskHistory.filter(t => t.addedOn <= date && (t.retiredOn === null || t.retiredOn >= date))
+//
+let state = {
+  taskHistory: [],
+  completions: {},
+  events:      [],
+  todos:       [], // [ { id, name, completedOn: null | "YYYY-MM-DD" } ]
+  theme:       'dark',
+};
+
+function saveState() {
+  localStorage.setItem('streaks_v4', JSON.stringify(state));
+}
+
+function loadState() {
+  const raw = localStorage.getItem('streaks_v4');
+  if (raw) {
+    state = Object.assign({ taskHistory:[], completions:{}, events:[], todos:[], theme:'dark' }, JSON.parse(raw));
+  } else {
+    // Check for v3 data and migrate it
+    const v3raw = localStorage.getItem('streaks_v3');
+    if (v3raw) {
+      const v3 = JSON.parse(v3raw);
+      // Old tasks had no history — stamp them all as starting from the
+      // beginning of time so they don't break existing completion records.
+      state.taskHistory = (v3.tasks || []).map((name, i) => ({
+        id: 'task_migrated_' + i,
+        name,
+        addedOn:   '2000-01-01',
+        retiredOn: null,
+      }));
+      state.completions = v3.completions || {};
+      state.events      = v3.events || [];
+      state.theme       = v3.theme  || 'dark';
+    } else {
+      // Fresh install — seed default tasks starting today
+      const today = todayKey();
+      state.taskHistory = [
+        { id:'task_1', name:'Make bed',  addedOn: today, retiredOn: null },
+        { id:'task_2', name:'Exercise',  addedOn: today, retiredOn: null },
+        { id:'task_3', name:'Dishes',    addedOn: today, retiredOn: null },
+      ];
+    }
+    saveState();
+  }
+  applyTheme(state.theme);
+}
+
+// ─── TASK HISTORY HELPERS ────────────────────────────────
+// Returns the list of task objects that were "active" on a given date key.
+// A task is active on a date if:
+//   addedOn <= date  AND  (retiredOn is null  OR  retiredOn >= date)
+function activeTasksOn(dateKey) {
+  return state.taskHistory.filter(t =>
+    t.addedOn <= dateKey &&
+    (t.retiredOn === null || t.retiredOn >= dateKey)
+  );
+}
+
+// The currently active tasks (no retiredOn) — used in the Tasks tab list
+// and for today's view. Sorted by addedOn then by original insertion order.
+function currentTasks() {
+  return state.taskHistory.filter(t => t.retiredOn === null);
+}
+
+// ─── STREAK CALCULATION ──────────────────────────────────
+// For a given date, checks if every task active on that date was completed.
+function isDayComplete(dateKey) {
+  const tasks = activeTasksOn(dateKey);
+  if (tasks.length === 0) return false; // no tasks = no streak
+  const completed = state.completions[dateKey] || [];
+  return tasks.every(t => completed.includes(t.name));
+}
+
+// Walks backwards from yesterday. Counts consecutive fully-complete days,
+// then adds 1 if today is also complete. This avoids double-counting today.
+function calcStreak() {
+  let streak = 0;
+  const todayDone = isDayComplete(todayKey());
+
+  // Start the backwards walk from yesterday
+  let d = new Date();
+  d.setDate(d.getDate() - 1);
+
+  while (true) {
+    const key = dateKey(d);
+    // Stop if no tasks were defined yet on this date
+    if (activeTasksOn(key).length === 0) break;
+    if (!isDayComplete(key)) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+
+  // Today counts as +1 only if fully complete, independently of the loop
+  if (todayDone) streak++;
+  return streak;
+}
+
+// ─── THEME ───────────────────────────────────────────────
+function applyTheme(id) {
+  document.documentElement.setAttribute('data-theme', id);
+  state.theme = id;
+}
+
+function renderThemeGrid() {
+  const grid = document.getElementById('themeGrid');
+  grid.innerHTML = '';
+  THEMES.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'theme-swatch' + (state.theme === t.id ? ' active' : '');
+    el.style.background = t.bg;
+    el.innerHTML = `<div class="theme-swatch-dot" style="background:${t.dot}"></div><div class="theme-swatch-label" style="color:${t.dot}">${t.label}</div>`;
+    el.onclick = () => { applyTheme(t.id); saveState(); renderThemeGrid(); };
+    grid.appendChild(el);
+  });
+}
+
+// ─── DATE HELPERS ────────────────────────────────────────
+// Uses local time to avoid UTC-offset date shifting.
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayKey()       { return dateKey(new Date()); }
+function isToday(key)     { return key === todayKey(); }
+function isFuture(key)    { return key > todayKey(); }
+function formatFull(key) {
+  const [y,m,d] = key.split('-');
+  return new Date(+y,+m-1,+d).toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
+}
+// Returns the date key for the day before a given key
+function dayBefore(key) {
+  const [y,m,d] = key.split('-');
+  const dt = new Date(+y,+m-1,+d);
+  dt.setDate(dt.getDate() - 1);
+  return dateKey(dt);
+}
+
+// ─── TODAY VIEW ──────────────────────────────────────────
+let viewingDate = todayKey();
+
+function renderTodayView() {
+  const list = document.getElementById('tasksList');
+  const bar  = document.getElementById('progressBar');
+  list.innerHTML = '';
+
+  const isPast      = !isToday(viewingDate);
+  const completed   = state.completions[viewingDate] || [];
+  // Get only the tasks that were active on the viewed date
+  const dayTasks    = activeTasksOn(viewingDate);
+
+  // Banner when viewing a past or future date
+  if (viewingDate !== todayKey()) {
+    const b = document.createElement('div');
+    b.className = 'past-day-banner';
+    const label = isFuture(viewingDate) ? '📅 ' + formatFull(viewingDate) : '📅 ' + formatFull(viewingDate);
+    b.innerHTML = `<span>${label}</span><button onclick="goBackToToday()">← Today</button>`;
+    list.appendChild(b);
+  }
+
+  // Events for this day
+  const dayEvents = state.events.filter(e => e.date === viewingDate);
+  if (dayEvents.length > 0) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-divider';
+    lbl.textContent = 'Events';
+    list.appendChild(lbl);
+    dayEvents.forEach(ev => {
+      const p = document.createElement('div');
+      p.className = 'event-pill';
+      p.innerHTML = `
+        <div class="event-pill-dot" style="background:${ev.color}"></div>
+        <div class="event-pill-name">${ev.name}</div>
+        ${ev.note ? `<div class="event-pill-note">${ev.note}</div>` : ''}
+      `;
+      list.appendChild(p);
+    });
+  }
+
+  if (dayTasks.length === 0) {
+    list.innerHTML += `<div class="empty-state"><div class="empty-icon">📋</div><p>No tasks yet.<br>Add some in the Tasks tab.</p></div>`;
+    bar.style.width = '0%';
+    updateHeader();
+    return;
+  }
+
+  if (dayEvents.length > 0) {
+    const lbl2 = document.createElement('div');
+    lbl2.className = 'section-divider';
+    lbl2.textContent = 'Daily Tasks';
+    list.appendChild(lbl2);
+  }
+
+  const doneCount = dayTasks.filter(t => completed.includes(t.name)).length;
+  bar.style.width = ((doneCount / dayTasks.length) * 100) + '%';
+
+  dayTasks.forEach((task, i) => {
+    const done = completed.includes(task.name);
+    const card = document.createElement('div');
+    card.className = 'task-card' + (done ? ' done' : '');
+    card.style.animationDelay = (i * 0.05) + 's';
+
+    card.innerHTML = `
+      <div class="task-header">
+        <div class="task-name">${task.name}</div>
+        <div class="task-check">${done ? '✓' : ''}</div>
+      </div>
+      <div class="slider-track" id="slider-${i}">
+        <div class="slider-fill" id="fill-${i}" style="width:${done?'100%':'0%'}"></div>
+        <div class="slider-thumb" id="thumb-${i}" style="left:${done?'calc(100% - 44px)':'4px'}">${done?'✓':'→'}</div>
+        <div class="slider-label">${done?'DONE':'SLIDE TO COMPLETE'}</div>
+      </div>
+      ${done ? `<button class="undo-btn" onclick="uncompleteTask('${task.name}')">↩ mark as incomplete</button>` : ''}
+    `;
+    list.appendChild(card);
+
+    if (!done) attachSlider(card, i, task.name);
+  });
+
+  updateHeader();
+}
+
+function updateHeader() {
+  document.getElementById('streakNum').textContent = calcStreak();
+  document.getElementById('todayLabel').textContent = isToday(viewingDate)
+    ? 'Today — ' + formatFull(todayKey())
+    : formatFull(viewingDate);
+}
+
+// Attaches touch + mouse drag listeners to a slider.
+// Completing at ≥75% of track width triggers completeTask().
+function attachSlider(card, idx, taskName) {
+  const track = document.getElementById(`slider-${idx}`);
+  const fill  = document.getElementById(`fill-${idx}`);
+  const thumb = document.getElementById(`thumb-${idx}`);
+  let dragging = false;
+  const getX = e => e.touches ? e.touches[0].clientX : e.clientX;
+
+  function onStart(e) { dragging = true; e.preventDefault(); }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const rect    = track.getBoundingClientRect();
+    const thumbW  = 48;
+    const maxL    = rect.width - thumbW;
+    const clamped = Math.max(4, Math.min(getX(e) - rect.left - thumbW/2, maxL));
+    const pct     = (clamped - 4) / (maxL - 4);
+    thumb.style.left = clamped + 'px';
+    fill.style.width = (pct * 100) + '%';
+    if (pct >= 0.75) { dragging = false; completeTask(card, idx, taskName); }
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    thumb.style.transition = 'left 0.3s';
+    thumb.style.left = '4px';
+    fill.style.width = '0%';
+    setTimeout(() => { thumb.style.transition = ''; }, 300);
+  }
+
+  track.addEventListener('touchstart', onStart, { passive:false });
+  track.addEventListener('touchmove',  onMove,  { passive:false });
+  track.addEventListener('touchend',   onEnd);
+  track.addEventListener('mousedown',  onStart);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup',   onEnd);
+}
+
+function completeTask(card, idx, taskName) {
+  if (!state.completions[viewingDate]) state.completions[viewingDate] = [];
+  if (!state.completions[viewingDate].includes(taskName)) {
+    state.completions[viewingDate].push(taskName);
+    saveState();
+  }
+  card.classList.add('done','flash');
+  // BUG FIX: also refresh the calendar grid so it reflects the new
+  // completion immediately when the user switches back to the calendar tab.
+  if (calYear !== undefined) renderCalendar(calSelectedKey);
+  setTimeout(() => renderTodayView(), 350);
+}
+
+function uncompleteTask(taskName) {
+  if (!state.completions[viewingDate]) return;
+  state.completions[viewingDate] = state.completions[viewingDate].filter(t => t !== taskName);
+  saveState();
+  if (calYear !== undefined) renderCalendar(calSelectedKey);
+  renderTodayView();
+}
+
+function goBackToToday() {
+  viewingDate = todayKey();
+  renderTodayView();
+}
+
+// ─── CALENDAR VIEW ───────────────────────────────────────
+let calYear, calMonth, calSelectedKey = null;
+
+function initCalendar() {
+  if (calYear === undefined) {
+    calYear  = new Date().getFullYear();
+    calMonth = new Date().getMonth();
+  }
+  renderCalendar(calSelectedKey);
+}
+
+function renderCalendar(selectedKey) {
+  calSelectedKey = selectedKey || null;
+  const grid  = document.getElementById('calGrid');
+  const label = document.getElementById('calMonthLabel');
+  grid.innerHTML = '';
+
+  const today = todayKey();
+  label.textContent = new Date(calYear, calMonth, 1)
+    .toLocaleDateString('en-CA', { month:'long', year:'numeric' });
+
+  ['S','M','T','W','T','F','S'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el  = document.createElement('div');
+
+    const numSpan = document.createElement('span');
+    numSpan.textContent = d;
+    el.appendChild(numSpan);
+
+    // Event colour dots (max 3)
+    const evs = state.events.filter(e => e.date === key);
+    if (evs.length > 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'event-dots';
+      evs.slice(0,3).forEach(ev => {
+        const dot = document.createElement('div');
+        dot.className = 'event-dot';
+        dot.style.background = ev.color;
+        wrap.appendChild(dot);
+      });
+      el.appendChild(wrap);
+    }
+
+    // Completion status uses activeTasksOn() so past days are judged
+    // by the tasks that were active then, not today's task list.
+    const dayTasks  = activeTasksOn(key);
+    const completed = state.completions[key] || [];
+    const total     = dayTasks.length;
+    const doneCount = dayTasks.filter(t => completed.includes(t.name)).length;
+
+    let cls = ['cal-day'];
+    if      (key === today)          cls.push('today');
+    else if (isFuture(key))          cls.push('future');
+    else if (total === 0)            cls.push('past');
+    else if (doneCount === total)    cls.push('complete');
+    else if (doneCount > 0)          cls.push('partial');
+    else                             cls.push('past');
+
+    if (key === selectedKey) cls.push('selected');
+    el.className = cls.join(' ');
+
+    // ALL days are clickable now (future days too — for adding events)
+    el.addEventListener('click', () => {
+      renderCalendar(key);
+      renderCalDetail(key);
+      document.getElementById('calDetail').style.display = 'block';
+    });
+
+    grid.appendChild(el);
+  }
+}
+
+// Renders the detail panel below the calendar grid.
+// Future days: show events + Add event button only (no task tracking).
+// Past/today: show events, task completion status, and Add event button.
+function renderCalDetail(key) {
+  const detail    = document.getElementById('calDetail');
+  const completed = state.completions[key] || [];
+  const dayEvents = state.events.filter(e => e.date === key);
+  const fut       = isFuture(key);
+
+  // "View day" button — only useful for today/past (future has no tasks to view)
+  const gotoBtn = !fut
+    ? `<button class="goto-btn" onclick="viewDayInToday('${key}')">View day →</button>`
+    : '';
+
+  // Event rows with delete button — shown for all dates
+  const eventRows = dayEvents.map(ev => `
+    <div class="cal-detail-item">
+      <div class="cal-dot" style="background:${ev.color}"></div>
+      <div class="cal-detail-name">${ev.name}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${ev.note ? `<div class="cal-detail-status">${ev.note}</div>` : ''}
+        <button class="icon-btn" onclick="deleteEvent('${ev.id}')" style="font-size:14px">✕</button>
+      </div>
+    </div>`).join('');
+
+  // Task rows — only for past days and today, using the tasks active on that date
+  let taskRows = '';
+  if (!fut) {
+    const dayTasks = activeTasksOn(key);
+    if (dayTasks.length > 0) {
+      taskRows = dayTasks.map(task => {
+        const done = completed.includes(task.name);
+        return `
+          <div class="cal-detail-item">
+            <div class="cal-dot ${done?'done':'undone'}"></div>
+            <div class="cal-detail-name">${task.name}</div>
+            <div class="cal-detail-status ${done?'done':''}">${done?'done':'missed'}</div>
+          </div>`;
+      }).join('');
+    }
+  }
+
+  detail.innerHTML = `
+    <div class="cal-detail-header">
+      <span>${formatFull(key)}</span>
+      ${gotoBtn}
+    </div>
+    ${eventRows}
+    ${taskRows}
+    <button class="add-event-btn" onclick="openModal('${key}')">＋ Add event</button>
+  `;
+}
+
+function viewDayInToday(key) {
+  viewingDate = key;
+  switchTab('today');
+  renderTodayView();
+}
+
+document.getElementById('calPrev').addEventListener('click', () => {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+  document.getElementById('calDetail').style.display = 'none';
+});
+document.getElementById('calNext').addEventListener('click', () => {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+  document.getElementById('calDetail').style.display = 'none';
+});
+
+// ─── EVENT MODAL ─────────────────────────────────────────
+let modalTargetDate = null;
+let selectedColor   = EVENT_COLORS[4];
+
+function openModal(dateKey) {
+  modalTargetDate = dateKey;
+  document.getElementById('eventName').value = '';
+  document.getElementById('eventNote').value = '';
+
+  const [y,m,d] = dateKey.split('-');
+  document.getElementById('modalTitle').textContent =
+    'Add Event — ' + new Date(+y,+m-1,+d).toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+
+  selectedColor = EVENT_COLORS[4];
+  const wrap = document.getElementById('colorSwatches');
+  wrap.innerHTML = '';
+  EVENT_COLORS.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'swatch' + (c === selectedColor ? ' selected' : '');
+    el.style.background = c;
+    el.onclick = () => {
+      selectedColor = c;
+      wrap.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+    };
+    wrap.appendChild(el);
+  });
+
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('eventName').focus(), 350);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+function saveEvent() {
+  const name = document.getElementById('eventName').value.trim();
+  if (!name) { document.getElementById('eventName').focus(); return; }
+  const note = document.getElementById('eventNote').value.trim();
+  const id   = 'ev_' + Date.now();
+  state.events.push({ id, date:modalTargetDate, name, note, color:selectedColor });
+  saveState();
+  closeModal();
+  renderCalendar(calSelectedKey);
+  renderCalDetail(modalTargetDate);
+  document.getElementById('calDetail').style.display = 'block';
+}
+
+function deleteEvent(id) {
+  state.events = state.events.filter(e => e.id !== id);
+  saveState();
+  renderCalendar(calSelectedKey);
+  if (calSelectedKey) renderCalDetail(calSelectedKey);
+}
+
+// ─── MANAGE / TASKS TAB ──────────────────────────────────
+function renderManageView() {
+  const list = document.getElementById('manageList');
+  list.innerHTML = '';
+
+  const tasks = currentTasks(); // only show currently active tasks
+
+  if (tasks.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><p>No tasks yet. Add one below.</p></div>`;
+  } else {
+    tasks.forEach((task, i) => {
+      const item = document.createElement('div');
+      item.className = 'manage-item';
+      item.innerHTML = `
+        <div class="manage-item-name">${task.name}</div>
+        <button class="icon-btn edit" onclick="editTask('${task.id}')">✎</button>
+        <button class="icon-btn" onclick="deleteTask('${task.id}')">✕</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  renderThemeGrid();
+}
+
+function editTask(taskId) {
+  const task  = state.taskHistory.find(t => t.id === taskId);
+  if (!task) return;
+  const tasks = currentTasks();
+  const idx   = tasks.findIndex(t => t.id === taskId);
+  const items = document.getElementById('manageList').querySelectorAll('.manage-item');
+  items[idx].innerHTML = `
+    <input value="${task.name}" maxlength="40"
+      onkeydown="if(event.key==='Enter')saveTask('${taskId}',this.value)">
+    <button class="icon-btn save" onclick="saveTask('${taskId}',this.previousElementSibling.value)">✓</button>
+    <button class="icon-btn" onclick="renderManageView()">✕</button>
+  `;
+  items[idx].querySelector('input').focus();
+}
+
+// Renaming a task:
+// 1. Retire the old task entry as of yesterday (so past days still see the old name).
+// 2. Create a new task entry with the new name starting today.
+// Completions for past days remain under the old name and still count correctly.
+function saveTask(taskId, newName) {
+  const trimmed = newName.trim();
+  if (!trimmed) return;
+  const task = state.taskHistory.find(t => t.id === taskId);
+  if (!task || task.name === trimmed) { renderManageView(); return; }
+
+  const today = todayKey();
+
+  // Retire the old task as of yesterday
+  task.retiredOn = dayBefore(today);
+
+  // Add a new task entry starting today
+  state.taskHistory.push({
+    id:        'task_' + Date.now(),
+    name:      trimmed,
+    addedOn:   today,
+    retiredOn: null,
+  });
+
+  saveState();
+  renderManageView();
+  renderTodayView();
+  if (calYear !== undefined) renderCalendar(calSelectedKey);
+}
+
+// Deleting a task:
+// Retire it as of yesterday so past days still show and count it correctly.
+// It simply won't appear from today onward.
+function deleteTask(taskId) {
+  const task = state.taskHistory.find(t => t.id === taskId);
+  if (!task) return;
+  task.retiredOn = dayBefore(todayKey());
+  saveState();
+  renderManageView();
+  renderTodayView();
+  if (calYear !== undefined) renderCalendar(calSelectedKey);
+}
+
+// Adding a new task:
+// Stamp it with today's date so it only appears on today and future days.
+// Wipes all completions, events, and task history, then re-creates the
+// current active tasks with addedOn = today. Theme is preserved.
+function resetAllData() {
+  if (!confirm('This will clear all completion history, events, and streak data. Your task names will be kept but history starts fresh from today. This cannot be undone.')) return;
+
+  const today        = todayKey();
+  const keptNames    = currentTasks().map(t => t.name);
+
+  state.completions  = {};
+  state.events       = [];
+  state.taskHistory  = keptNames.map((name, i) => ({
+    id:        'task_reset_' + i + '_' + Date.now(),
+    name,
+    addedOn:   today,
+    retiredOn: null,
+  }));
+
+  saveState();
+  renderManageView();
+  renderTodayView();
+  if (calYear !== undefined) renderCalendar(calSelectedKey);
+}
+
+function addTask() {
+  const input = document.getElementById('newTaskInput');
+  const name  = input.value.trim();
+  if (!name) return;
+
+  // Prevent duplicates among currently active tasks
+  if (currentTasks().some(t => t.name === name)) { input.select(); return; }
+
+  state.taskHistory.push({
+    id:        'task_' + Date.now(),
+    name,
+    addedOn:   todayKey(),
+    retiredOn: null,
+  });
+
+  saveState();
+  input.value = '';
+  renderManageView();
+  renderTodayView();
+  if (calYear !== undefined) renderCalendar(calSelectedKey);
+}
+
+document.getElementById('newTaskInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+// ─── TO DO TAB ───────────────────────────────────────────
+// todos are stored as { id, name, completedOn }
+// completedOn is null while pending, set to "YYYY-MM-DD" when checked off.
+// They stay in the array permanently — completedOn is what separates
+// active from history.
+
+function renderTodoView() {
+  const activeList  = document.getElementById('todoActiveList');
+  const histSection = document.getElementById('todoHistorySection');
+  const histList    = document.getElementById('todoHistoryList');
+  activeList.innerHTML = '';
+  histList.innerHTML   = '';
+
+  const active    = state.todos.filter(t => t.completedOn === null);
+  const completed = state.todos.filter(t => t.completedOn !== null)
+    // Sort most-recently-completed first
+    .sort((a, b) => b.completedOn.localeCompare(a.completedOn));
+
+  if (active.length === 0) {
+    activeList.innerHTML = `<div class="empty-state" style="padding:40px 0 20px"><div class="empty-icon">✅</div><p>Nothing pending.<br>Add something above.</p></div>`;
+  } else {
+    active.forEach(todo => {
+      const el = document.createElement('div');
+      el.className = 'todo-item';
+      el.innerHTML = `
+        <button class="todo-check-btn" onclick="completeTodo('${todo.id}')" title="Mark done">✓</button>
+        <div class="todo-item-name">${todo.name}</div>
+        <button class="todo-delete-btn" onclick="deleteTodo('${todo.id}')" title="Delete">✕</button>
+      `;
+      activeList.appendChild(el);
+    });
+  }
+
+  if (completed.length > 0) {
+    histSection.style.display = 'block';
+    completed.forEach(todo => {
+      const el = document.createElement('div');
+      el.className = 'todo-history-item';
+      // Format completedOn as "Mon, Apr 2"
+      const [y,m,d] = todo.completedOn.split('-');
+      const dateStr = new Date(+y,+m-1,+d).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+      el.innerHTML = `
+        <div class="todo-history-dot"></div>
+        <div class="todo-history-name">${todo.name}</div>
+        <div class="todo-history-date">${dateStr}</div>
+      `;
+      histList.appendChild(el);
+    });
+  } else {
+    histSection.style.display = 'none';
+  }
+}
+
+function addTodo() {
+  const input = document.getElementById('newTodoInput');
+  const name  = input.value.trim();
+  if (!name) return;
+  state.todos.push({ id:'todo_' + Date.now(), name, completedOn:null });
+  saveState();
+  input.value = '';
+  renderTodoView();
+}
+
+// Marks a to-do as complete with today's date, moving it to history.
+function completeTodo(id) {
+  const todo = state.todos.find(t => t.id === id);
+  if (!todo) return;
+  todo.completedOn = todayKey();
+  saveState();
+  renderTodoView();
+}
+
+// Permanently removes an active to-do (not completed ones — those stay in history).
+function deleteTodo(id) {
+  state.todos = state.todos.filter(t => t.id !== id);
+  saveState();
+  renderTodoView();
+}
+
+// Clears only the completed history entries, leaving active to-dos untouched.
+function clearTodoHistory() {
+  if (!confirm('Clear all completed to-do history? This cannot be undone.')) return;
+  state.todos = state.todos.filter(t => t.completedOn === null);
+  saveState();
+  renderTodoView();
+}
+
+document.getElementById('newTodoInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTodo();
+});
+
+// ─── TAB SWITCHING ───────────────────────────────────────
+const TAB_ORDER = ['calendar', 'today', 'todo', 'manage'];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', TAB_ORDER[i] === name);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+
+  if (name === 'calendar') initCalendar();
+  if (name === 'today')    renderTodayView();
+  if (name === 'todo')     renderTodoView();
+  if (name === 'manage')   renderManageView();
+}
+
+// ─── INIT ────────────────────────────────────────────────
+loadState();
+document.getElementById('todayLabel').textContent = 'Today — ' + formatFull(todayKey());
+document.getElementById('streakNum').textContent  = calcStreak();
+initCalendar();
+</script>
+</body>
+</html>
